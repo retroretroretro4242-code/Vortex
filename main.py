@@ -10,6 +10,7 @@ TOKEN = os.getenv("TOKEN")
 
 CATEGORY_ID = 1480796146510332120
 LOG_CHANNEL = 1480796145608556691
+AUTO_ROLE = 1480796145591648432
 
 YETKILI_ROLLER = [
 1480796145608556685,
@@ -21,7 +22,52 @@ intents = discord.Intents.all()
 bot = commands.Bot(command_prefix="!", intents=intents)
 
 
+# -----------------------------
+# MEMBER JOIN
+# -----------------------------
+
+@bot.event
+async def on_member_join(member):
+
+    role = member.guild.get_role(AUTO_ROLE)
+    if role:
+        await member.add_roles(role)
+
+    channel = member.guild.system_channel
+
+    if channel:
+
+        embed = discord.Embed(
+            title="👋 Sunucuya Hoş Geldin!",
+            description=f"""
+🎉 **Hoş geldin {member.mention}!**
+
+🏰 **Towny Klan Sunucumuza katıldığın için mutluyuz.**
+
+Sunucuda yapabileceklerin:
+
+⚔️ Klan kurabilir ve savaşlara katılabilirsin  
+🏠 Towny ile kendi şehrini kurabilirsin  
+💰 Ekonomi sistemi ile gelişebilirsin  
+🤝 Yeni arkadaşlar edinebilirsin  
+
+📜 Kuralları okumayı unutma.
+
+**İyi eğlenceler!**
+""",
+            color=0x2ecc71
+        )
+
+        embed.set_thumbnail(url=member.display_avatar.url)
+
+        embed.set_footer(text=f"{member.guild.name} | Minecraft Towny Sunucusu")
+
+        await channel.send(embed=embed)
+
+
+# -----------------------------
 # TICKET SELECT MENU
+# -----------------------------
 
 class TicketSelect(Select):
     def __init__(self):
@@ -88,7 +134,9 @@ class TicketPanel(View):
         self.add_item(TicketSelect())
 
 
+# -----------------------------
 # BUTTONS
+# -----------------------------
 
 class TicketButtons(View):
     def __init__(self):
@@ -129,7 +177,9 @@ class TicketButtons(View):
         await interaction.channel.delete()
 
 
+# -----------------------------
 # SLASH COMMAND
+# -----------------------------
 
 @bot.tree.command(name="ticketpanel", description="Ticket paneli oluşturur")
 async def ticketpanel(interaction: discord.Interaction):
@@ -139,7 +189,6 @@ async def ticketpanel(interaction: discord.Interaction):
         description="""
 Aşağıdaki menüden destek kategorisini seçerek ticket oluşturabilirsiniz.
 
-**Kategoriler**
 🤝 Partner Başvuru  
 🆘 Yardım  
 👥 Ekip Alım  
@@ -157,6 +206,10 @@ Aşağıdaki menüden destek kategorisini seçerek ticket oluşturabilirsiniz.
         view=TicketPanel()
     )
 
+
+# -----------------------------
+# READY
+# -----------------------------
 
 @bot.event
 async def on_ready():
