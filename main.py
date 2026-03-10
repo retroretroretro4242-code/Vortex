@@ -40,19 +40,15 @@ member_inviter = {}  # member.id: inviter.id
 invite_counts = {}   # inviter.id: total_invites
 
 # =========================
-# Yardımcı fonksiyon
-# =========================
 def yetkili_mi(member):
     return any(role.id in YETKILI_ROLLER for role in member.roles)
 
 # =========================
-# Bot hazır
-# =========================
 @bot.event
 async def on_ready():
-    await bot.tree.sync()
     for guild in bot.guilds:
         invites_cache[guild.id] = await guild.invites()
+        await bot.tree.sync(guild=guild)  # Guild bazlı sync
     print(f"Bot aktif: {bot.user}")
 
 # =========================
@@ -147,7 +143,7 @@ async def on_member_remove(member):
         await leave_channel.send(embed=embed)
 
 # =========================
-# /invites komutu
+# SLASH KOMUTLAR
 # =========================
 @bot.tree.command(name="invites")
 async def invites(interaction: discord.Interaction):
@@ -159,9 +155,6 @@ async def invites(interaction: discord.Interaction):
     )
     await interaction.response.send_message(embed=embed, ephemeral=True)
 
-# =========================
-# /inviteleaderboard komutu
-# =========================
 @bot.tree.command(name="inviteleaderboard")
 async def invite_leaderboard(interaction: discord.Interaction):
     leaderboard = sorted(invite_counts.items(), key=lambda x: x[1], reverse=True)[:10]
@@ -173,9 +166,6 @@ async def invite_leaderboard(interaction: discord.Interaction):
     embed = discord.Embed(title="🏆 Invite Leaderboard", description=description or "Davet yok", color=0xFFD700)
     await interaction.response.send_message(embed=embed)
 
-# =========================
-# /inviter komutu
-# =========================
 @bot.tree.command(name="inviter")
 async def inviter(interaction: discord.Interaction, member: discord.Member):
     inviter_id = member_inviter.get(member.id)
@@ -186,9 +176,6 @@ async def inviter(interaction: discord.Interaction, member: discord.Member):
         text = f"{member.mention} kişisini davet eden bulunamadı."
     await interaction.response.send_message(text, ephemeral=True)
 
-# =========================
-# /invitereset komutu
-# =========================
 @bot.tree.command(name="invitereset")
 async def invite_reset(interaction: discord.Interaction, member: discord.Member):
     if not yetkili_mi(interaction.user):
