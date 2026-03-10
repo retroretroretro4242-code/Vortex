@@ -321,11 +321,46 @@ class TicketPanel(View):
 @bot.tree.command(name="ticketpanel")
 async def ticketpanel(interaction: discord.Interaction):
 
-    embed = discord.Embed(
-        title="🎫 Klan Destek Merkezi",
-        description="Kategori seçerek ticket oluştur.",
-        color=0x5865F2
-    )
+embed = discord.Embed(
+    title="🎫 Atlas Projects • Destek Merkezi",
+    description="""
+Sunucu ekibiyle iletişime geçmek için aşağıdan bir kategori seçin.
+
+━━━━━━━━━━━━━━━━━━
+
+🤝 **Partner Başvuru**
+Sunucular arası iş birliği başvurusu yapabilirsiniz.
+
+🆘 **Yardım & Destek**
+Oyun, sistem veya sunucu hakkında yardım alın.
+
+👥 **Ekip Alım**
+Yetkili başvuruları ve ekip soruları.
+
+⚠️ **Şikayet & Bildirim**
+Kullanıcı şikayetleri veya kural ihlalleri.
+
+━━━━━━━━━━━━━━━━━━
+
+📌 **Bilgilendirme**
+• Gereksiz ticket açmayın  
+• Yetkilileri spam pinglemeyin  
+• Sorununuzu detaylı anlatın  
+• Ticket bitince kapatılır
+
+⏳ Yetkililer en kısa sürede sizinle ilgilenecektir.
+""",
+    color=0x5865F2
+)
+
+embed.set_footer(
+    text="Atlas Projects Destek Sistemi",
+    icon_url=interaction.guild.icon.url if interaction.guild.icon else None
+)
+
+embed.set_thumbnail(
+    url=interaction.guild.icon.url if interaction.guild.icon else None
+)
 
     await interaction.response.send_message(embed=embed, view=TicketPanel())
 
