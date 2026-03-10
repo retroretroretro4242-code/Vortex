@@ -318,11 +318,13 @@ class TicketPanel(View):
         super().__init__(timeout=None)
         self.add_item(TicketSelect())
 
+
 @bot.tree.command(name="ticketpanel")
 async def ticketpanel(interaction: discord.Interaction):
-embed = discord.Embed(
-    title="🎫 Atlas Projects • Destek Merkezi",
-    description="""
+
+    embed = discord.Embed(
+        title="🎫 Atlas Projects • Destek Merkezi",
+        description="""
 Sunucu ekibiyle iletişime geçmek için aşağıdan bir kategori seçin.
 
 ━━━━━━━━━━━━━━━━━━
@@ -349,20 +351,22 @@ Kullanıcı şikayetleri veya kural ihlalleri.
 
 ⏳ Yetkililer en kısa sürede sizinle ilgilenecektir.
 """,
-    color=0x5865F2
-)
+        color=0x5865F2
+    )
 
-embed.set_footer(
-    text="Atlas Projects Destek Sistemi",
-    icon_url=interaction.guild.icon.url if interaction.guild.icon else None
-)
+    embed.set_footer(
+        text="Atlas Projects Destek Sistemi",
+        icon_url=interaction.guild.icon.url if interaction.guild.icon else None
+    )
 
-embed.set_thumbnail(
-    url=interaction.guild.icon.url if interaction.guild.icon else None
-)
+    embed.set_thumbnail(
+        url=interaction.guild.icon.url if interaction.guild.icon else None
+    )
 
-    await interaction.response.send_message(embed=embed, view=TicketPanel())
-
+    await interaction.response.send_message(
+        embed=embed,
+        view=TicketPanel()
+    )
 # =================================================
 # READY
 # =================================================
