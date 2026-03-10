@@ -12,6 +12,9 @@ CATEGORY_ID = 1480796146510332120
 LOG_CHANNEL = 1480796145608556691
 AUTO_ROLE = 1480796145591648432
 
+VALORANT_ROLE = 1480796145579200582
+MINECRAFT_ROLE = 1480796145570676779
+
 YETKILI_ROLLER = [
 1480796145608556685,
 1480796145600172131,
@@ -30,6 +33,7 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 async def on_member_join(member):
 
     role = member.guild.get_role(AUTO_ROLE)
+
     if role:
         await member.add_roles(role)
 
@@ -44,29 +48,110 @@ async def on_member_join(member):
 
 🏰 **Towny Klan Sunucumuza katıldığın için mutluyuz.**
 
-Sunucuda yapabileceklerin:
-
 ⚔️ Klan kurabilir ve savaşlara katılabilirsin  
-🏠 Towny ile kendi şehrini kurabilirsin  
+🏠 Towny ile şehir kurabilirsin  
 💰 Ekonomi sistemi ile gelişebilirsin  
-🤝 Yeni arkadaşlar edinebilirsin  
-
-📜 Kuralları okumayı unutma.
-
-**İyi eğlenceler!**
+🤝 Yeni arkadaşlar edinebilirsin
 """,
             color=0x2ecc71
         )
 
         embed.set_thumbnail(url=member.display_avatar.url)
 
-        embed.set_footer(text=f"{member.guild.name} | Minecraft Towny Sunucusu")
-
         await channel.send(embed=embed)
 
 
 # -----------------------------
-# TICKET SELECT MENU
+# REACTION ROLE
+# -----------------------------
+
+class RoleButtons(View):
+
+    def __init__(self):
+        super().__init__(timeout=None)
+
+    @discord.ui.button(label="Valorant", emoji="🎯", style=discord.ButtonStyle.red)
+    async def valorant(self, interaction: discord.Interaction, button: Button):
+
+        role = interaction.guild.get_role(VALORANT_ROLE)
+
+        if role in interaction.user.roles:
+            await interaction.user.remove_roles(role)
+            await interaction.response.send_message("Valorant rolü kaldırıldı.", ephemeral=True)
+        else:
+            await interaction.user.add_roles(role)
+            await interaction.response.send_message("Valorant rolü verildi.", ephemeral=True)
+
+
+    @discord.ui.button(label="Minecraft", emoji="⛏️", style=discord.ButtonStyle.green)
+    async def minecraft(self, interaction: discord.Interaction, button: Button):
+
+        role = interaction.guild.get_role(MINECRAFT_ROLE)
+
+        if role in interaction.user.roles:
+            await interaction.user.remove_roles(role)
+            await interaction.response.send_message("Minecraft rolü kaldırıldı.", ephemeral=True)
+        else:
+            await interaction.user.add_roles(role)
+            await interaction.response.send_message("Minecraft rolü verildi.", ephemeral=True)
+
+
+@bot.tree.command(name="roller", description="Rol alma paneli")
+async def roller(interaction: discord.Interaction):
+
+    embed = discord.Embed(
+        title="🎭 Rol Seçimi",
+        description="""
+Aşağıdaki butonlara basarak rol alabilirsiniz.
+
+🎯 Valorant  
+⛏️ Minecraft
+""",
+        color=0x5865F2
+    )
+
+    await interaction.response.send_message(embed=embed, view=RoleButtons())
+
+
+# -----------------------------
+# MODERATION COMMANDS
+# -----------------------------
+
+@bot.tree.command(name="ban", description="Kullanıcıyı banlar")
+async def ban(interaction: discord.Interaction, user: discord.Member, reason: str = "Sebep belirtilmedi"):
+
+    if not interaction.user.guild_permissions.ban_members:
+        return await interaction.response.send_message("Yetkin yok.", ephemeral=True)
+
+    await user.ban(reason=reason)
+
+    await interaction.response.send_message(f"{user} banlandı.")
+
+
+@bot.tree.command(name="kick", description="Kullanıcıyı atar")
+async def kick(interaction: discord.Interaction, user: discord.Member, reason: str = "Sebep belirtilmedi"):
+
+    if not interaction.user.guild_permissions.kick_members:
+        return await interaction.response.send_message("Yetkin yok.", ephemeral=True)
+
+    await user.kick(reason=reason)
+
+    await interaction.response.send_message(f"{user} sunucudan atıldı.")
+
+
+@bot.tree.command(name="clear", description="Mesaj temizler")
+async def clear(interaction: discord.Interaction, amount: int):
+
+    if not interaction.user.guild_permissions.manage_messages:
+        return await interaction.response.send_message("Yetkin yok.", ephemeral=True)
+
+    await interaction.channel.purge(limit=amount)
+
+    await interaction.response.send_message(f"{amount} mesaj silindi.", ephemeral=True)
+
+
+# -----------------------------
+# TICKET SYSTEM
 # -----------------------------
 
 class TicketSelect(Select):
@@ -79,10 +164,7 @@ class TicketSelect(Select):
             discord.SelectOption(label="Şikayet", emoji="⚠️"),
         ]
 
-        super().__init__(
-            placeholder="Bir kategori seç...",
-            options=options
-        )
+        super().__init__(placeholder="Bir kategori seç...", options=options)
 
     async def callback(self, interaction: discord.Interaction):
 
@@ -90,11 +172,6 @@ class TicketSelect(Select):
         category = guild.get_channel(CATEGORY_ID)
 
         name = f"ticket-{interaction.user.name}".lower()
-
-        for c in guild.channels:
-            if c.name == name:
-                await interaction.response.send_message("Zaten açık ticketın var.", ephemeral=True)
-                return
 
         overwrites = {
             guild.default_role: discord.PermissionOverwrite(read_messages=False),
@@ -113,19 +190,9 @@ class TicketSelect(Select):
             color=0x2b2d31
         )
 
-        embed.add_field(name="Kategori", value=self.values[0])
-        embed.set_footer(text="Yetkililer sizinle ilgilenecek.")
+        await channel.send(embed=embed)
 
-        await channel.send(
-            content=f"{interaction.user.mention}",
-            embed=embed,
-            view=TicketButtons()
-        )
-
-        await interaction.response.send_message(
-            f"Ticket oluşturuldu: {channel.mention}",
-            ephemeral=True
-        )
+        await interaction.response.send_message(f"Ticket oluşturuldu: {channel.mention}", ephemeral=True)
 
 
 class TicketPanel(View):
@@ -133,53 +200,6 @@ class TicketPanel(View):
         super().__init__(timeout=None)
         self.add_item(TicketSelect())
 
-
-# -----------------------------
-# BUTTONS
-# -----------------------------
-
-class TicketButtons(View):
-    def __init__(self):
-        super().__init__(timeout=None)
-
-    @discord.ui.button(label="Ticket Kapat", emoji="🔒", style=discord.ButtonStyle.red)
-    async def close(self, interaction: discord.Interaction, button: Button):
-
-        await interaction.channel.send("Ticket 5 saniye içinde kapanacak.")
-        await discord.utils.sleep_until(datetime.datetime.utcnow() + datetime.timedelta(seconds=5))
-        await interaction.channel.edit(name="closed-ticket")
-
-
-    @discord.ui.button(label="Ticket Sil", emoji="🧹", style=discord.ButtonStyle.gray)
-    async def delete(self, interaction: discord.Interaction, button: Button):
-
-        log = interaction.guild.get_channel(LOG_CHANNEL)
-
-        messages = []
-        async for msg in interaction.channel.history(limit=None, oldest_first=True):
-            messages.append(f"{msg.author}: {msg.content}")
-
-        transcript = "\n".join(messages)
-
-        file = discord.File(
-            fp=bytes(transcript, "utf-8"),
-            filename="transcript.txt"
-        )
-
-        embed = discord.Embed(
-            title="📁 Ticket Log",
-            description=f"Ticket silindi\nKanal: {interaction.channel.name}",
-            color=discord.Color.red()
-        )
-
-        await log.send(embed=embed, file=file)
-
-        await interaction.channel.delete()
-
-
-# -----------------------------
-# SLASH COMMAND
-# -----------------------------
 
 @bot.tree.command(name="ticketpanel", description="Ticket paneli oluşturur")
 async def ticketpanel(interaction: discord.Interaction):
@@ -192,19 +212,12 @@ Aşağıdaki menüden destek kategorisini seçerek ticket oluşturabilirsiniz.
 🤝 Partner Başvuru  
 🆘 Yardım  
 👥 Ekip Alım  
-⚠️ Şikayet  
-
-⚠️ Gereksiz ticket açmayın.
+⚠️ Şikayet
 """,
         color=0x5865F2
     )
 
-    embed.set_footer(text="Destek ekibi en kısa sürede ilgilenecektir.")
-
-    await interaction.response.send_message(
-        embed=embed,
-        view=TicketPanel()
-    )
+    await interaction.response.send_message(embed=embed, view=TicketPanel())
 
 
 # -----------------------------
@@ -213,7 +226,9 @@ Aşağıdaki menüden destek kategorisini seçerek ticket oluşturabilirsiniz.
 
 @bot.event
 async def on_ready():
+
     await bot.tree.sync()
+
     print(f"Bot aktif: {bot.user}")
 
 
