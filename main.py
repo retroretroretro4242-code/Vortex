@@ -8,65 +8,120 @@ import datetime
 load_dotenv()
 TOKEN = os.getenv("TOKEN")
 
+# =========================
+# IDLER
+# =========================
+
 CATEGORY_ID = 1480796146510332120
 LOG_CHANNEL = 1480796145608556691
+
+JOIN_CHANNEL = 1480796146271129759
+LEAVE_CHANNEL = 1480796146271129759
+
 AUTO_ROLE = 1480796145591648432
 
 VALORANT_ROLE = 1480796145579200582
 MINECRAFT_ROLE = 1480796145570676779
 
 YETKILI_ROLLER = [
-1480796145608556685,
-1480796145600172131,
-1480796145600172130
+    1480796145608556685,
+    1480796145600172131,
+    1480796145600172130
 ]
+
+# =========================
 
 intents = discord.Intents.all()
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-
-# -----------------------------
+# =================================================
 # MEMBER JOIN
-# -----------------------------
+# =================================================
 
 @bot.event
 async def on_member_join(member):
 
-    role = member.guild.get_role(AUTO_ROLE)
+    guild = member.guild
 
+    # oto rol
+    role = guild.get_role(AUTO_ROLE)
     if role:
         await member.add_roles(role)
 
-    channel = member.guild.system_channel
-
-    if channel:
-
-        embed = discord.Embed(
+    # DM mesajı
+    try:
+        dm_embed = discord.Embed(
             title="👋 Sunucuya Hoş Geldin!",
             description=f"""
-🎉 **Hoş geldin {member.mention}!**
+Merhaba **{member.name}** 🎉
 
-🏰 **Towny Klan Sunucumuza katıldığın için mutluyuz.**
+🏰 Towny Klan Sunucumuza hoş geldin!
 
-⚔️ Klan kurabilir ve savaşlara katılabilirsin  
-🏠 Towny ile şehir kurabilirsin  
-💰 Ekonomi sistemi ile gelişebilirsin  
-🤝 Yeni arkadaşlar edinebilirsin
+⚔️ Klan kur
+🏠 Şehir oluştur
+💰 Ekonomi kas
+🤝 Arkadaş edin
+
+İyi eğlenceler!
 """,
             color=0x2ecc71
         )
 
+        dm_embed.set_thumbnail(url=guild.icon.url if guild.icon else member.display_avatar.url)
+        await member.send(embed=dm_embed)
+    except:
+        pass
+
+    # Join log
+    join_channel = guild.get_channel(JOIN_CHANNEL)
+
+    if join_channel:
+        embed = discord.Embed(
+            title="✅ Yeni Üye Katıldı",
+            description=f"""
+👤 {member.mention}
+🆔 `{member.id}`
+📅 Hesap: <t:{int(member.created_at.timestamp())}:R>
+""",
+            color=0x57F287
+        )
+
         embed.set_thumbnail(url=member.display_avatar.url)
+        embed.set_footer(text=f"Toplam Üye: {guild.member_count}")
 
-        await channel.send(embed=embed)
+        await join_channel.send(embed=embed)
 
 
-# -----------------------------
-# REACTION ROLE
-# -----------------------------
+# =================================================
+# MEMBER LEAVE
+# =================================================
+
+@bot.event
+async def on_member_remove(member):
+
+    guild = member.guild
+    leave_channel = guild.get_channel(LEAVE_CHANNEL)
+
+    if leave_channel:
+        embed = discord.Embed(
+            title="📤 Üye Ayrıldı",
+            description=f"""
+👤 {member.name}
+🆔 `{member.id}`
+""",
+            color=0xED4245
+        )
+
+        embed.set_thumbnail(url=member.display_avatar.url)
+        embed.set_footer(text=f"Toplam Üye: {guild.member_count}")
+
+        await leave_channel.send(embed=embed)
+
+# =================================================
+# ROLE BUTTONS
+# =================================================
 
 class RoleButtons(View):
-
     def __init__(self):
         super().__init__(timeout=None)
 
@@ -82,7 +137,6 @@ class RoleButtons(View):
             await interaction.user.add_roles(role)
             await interaction.response.send_message("Valorant rolü verildi.", ephemeral=True)
 
-
     @discord.ui.button(label="Minecraft", emoji="⛏️", style=discord.ButtonStyle.green)
     async def minecraft(self, interaction: discord.Interaction, button: Button):
 
@@ -96,75 +150,102 @@ class RoleButtons(View):
             await interaction.response.send_message("Minecraft rolü verildi.", ephemeral=True)
 
 
-@bot.tree.command(name="roller", description="Rol alma paneli")
+@bot.tree.command(name="roller")
 async def roller(interaction: discord.Interaction):
 
     embed = discord.Embed(
         title="🎭 Rol Seçimi",
-        description="""
-Aşağıdaki butonlara basarak rol alabilirsiniz.
-
-🎯 Valorant  
-⛏️ Minecraft
-""",
+        description="Butonlara basarak rol alabilirsiniz.",
         color=0x5865F2
     )
 
     await interaction.response.send_message(embed=embed, view=RoleButtons())
 
+# =================================================
+# MODERATION
+# =================================================
 
-# -----------------------------
-# MODERATION COMMANDS
-# -----------------------------
+def yetkili_mi(member):
+    return any(role.id in YETKILI_ROLLER for role in member.roles)
 
-@bot.tree.command(name="ban", description="Kullanıcıyı banlar")
+@bot.tree.command(name="ban")
 async def ban(interaction: discord.Interaction, user: discord.Member, reason: str = "Sebep belirtilmedi"):
 
     if not interaction.user.guild_permissions.ban_members:
         return await interaction.response.send_message("Yetkin yok.", ephemeral=True)
 
     await user.ban(reason=reason)
-
     await interaction.response.send_message(f"{user} banlandı.")
 
-
-@bot.tree.command(name="kick", description="Kullanıcıyı atar")
+@bot.tree.command(name="kick")
 async def kick(interaction: discord.Interaction, user: discord.Member, reason: str = "Sebep belirtilmedi"):
 
     if not interaction.user.guild_permissions.kick_members:
         return await interaction.response.send_message("Yetkin yok.", ephemeral=True)
 
     await user.kick(reason=reason)
+    await interaction.response.send_message(f"{user} atıldı.")
 
-    await interaction.response.send_message(f"{user} sunucudan atıldı.")
-
-
-@bot.tree.command(name="clear", description="Mesaj temizler")
+@bot.tree.command(name="clear")
 async def clear(interaction: discord.Interaction, amount: int):
 
     if not interaction.user.guild_permissions.manage_messages:
         return await interaction.response.send_message("Yetkin yok.", ephemeral=True)
 
     await interaction.channel.purge(limit=amount)
-
     await interaction.response.send_message(f"{amount} mesaj silindi.", ephemeral=True)
 
+# =================================================
+# TICKET BUTTONS
+# =================================================
 
-# -----------------------------
-# TICKET SYSTEM (Geliştirilmiş)
-# -----------------------------
+class TicketButtons(View):
 
-class TicketView(View):
-    def __init__(self, user: discord.Member):
+    def __init__(self):
         super().__init__(timeout=None)
-        self.user = user
 
-        self.add_item(TicketSelect(user))
+    @discord.ui.button(label="Talebi Devral", emoji="🛠️", style=discord.ButtonStyle.primary)
+    async def claim(self, interaction: discord.Interaction, button: Button):
+
+        if not yetkili_mi(interaction.user):
+            return await interaction.response.send_message("Yetkili değilsin.", ephemeral=True)
+
+        embed = discord.Embed(
+            description=f"🛠️ Ticket {interaction.user.mention} tarafından devralındı.",
+            color=0x3498db
+        )
+
+        await interaction.response.send_message(embed=embed)
+
+    @discord.ui.button(label="Ticket Kapat", emoji="🔒", style=discord.ButtonStyle.danger)
+    async def close(self, interaction: discord.Interaction, button: Button):
+
+        if not yetkili_mi(interaction.user):
+            return await interaction.response.send_message("Yetkili değilsin.", ephemeral=True)
+
+        await interaction.response.send_message("Ticket 5 saniye içinde kapanıyor...")
+
+        log_channel = interaction.guild.get_channel(LOG_CHANNEL)
+
+        if log_channel:
+            await log_channel.send(
+                f"📁 {interaction.channel.name} kapatıldı • {interaction.user}"
+            )
+
+        await discord.utils.sleep_until(
+            discord.utils.utcnow() + datetime.timedelta(seconds=5)
+        )
+
+        await interaction.channel.delete()
+
+# =================================================
+# TICKET SELECT
+# =================================================
 
 class TicketSelect(Select):
-    def __init__(self, user: discord.Member):
 
-        self.user = user
+    def __init__(self):
+
         options = [
             discord.SelectOption(label="Partner Başvuru", emoji="🤝"),
             discord.SelectOption(label="Yardım", emoji="🆘"),
@@ -186,86 +267,75 @@ class TicketSelect(Select):
             interaction.user: discord.PermissionOverwrite(read_messages=True, send_messages=True),
         }
 
+        yetkili_mentions = []
+
         for role_id in YETKILI_ROLLER:
             role = guild.get_role(role_id)
             overwrites[role] = discord.PermissionOverwrite(read_messages=True, send_messages=True)
+            yetkili_mentions.append(role.mention)
 
-        channel = await guild.create_text_channel(name=name, category=category, overwrites=overwrites)
-
-        # Ticket açıldı mesajı
-        yetkililer = " ".join([f"<@&{r}>" for r in YETKILI_ROLLER])
-        embed = discord.Embed(
-            title="🎫 Destek Talebi Açıldı",
-            description=f"{interaction.user.mention} destek talebi oluşturdu.\n\n{yetkililer} buraya bakabilir.\n\nLütfen talebinizi açıklayıcı şekilde yazın.",
-            color=0x2b2d31,
-            timestamp=datetime.datetime.utcnow()
+        channel = await guild.create_text_channel(
+            name=name,
+            category=category,
+            overwrites=overwrites
         )
 
-        await channel.send(embed=embed, view=TicketButtons(user=interaction.user))
-        await interaction.response.send_message(f"Ticket oluşturuldu: {channel.mention}", ephemeral=True)
+        embed = discord.Embed(
+            title="🎫 Destek Talebi Oluşturuldu",
+            description=f"""
+👤 {interaction.user.mention}
+📂 {self.values[0]}
 
+⏳ Yetkililer sizinle ilgilenecek.
 
-class TicketButtons(View):
-    def __init__(self, user: discord.Member):
-        super().__init__(timeout=None)
-        self.user = user
+📌 Kurallar
+• Spam yok
+• Saygılı olun
+• Sorunu detaylı anlatın
+""",
+            color=0x2b2d31
+        )
 
-    @discord.ui.button(label="Talebi Devral", style=discord.ButtonStyle.primary, emoji="🛠️")
-    async def claim(self, interaction: discord.Interaction, button: Button):
-        await interaction.response.send_message(f"{interaction.user.mention} talebi devraldı.", ephemeral=False)
+        embed.set_footer(text="Atlas Projects Destek Sistemi")
 
-    @discord.ui.button(label="Ticket Kapat", style=discord.ButtonStyle.red, emoji="❌")
-    async def close(self, interaction: discord.Interaction, button: Button):
-        await interaction.response.send_message("Ticket 5 saniye içinde kapatılacak...", ephemeral=True)
-        await discord.utils.sleep_until(datetime.datetime.utcnow() + datetime.timedelta(seconds=5))
-        await interaction.channel.delete()
+        await channel.send(
+            " ".join(yetkili_mentions),
+            embed=embed,
+            view=TicketButtons()
+        )
 
+        await interaction.response.send_message(
+            f"Ticket oluşturuldu: {channel.mention}",
+            ephemeral=True
+        )
+
+# =================================================
+# PANEL
+# =================================================
 
 class TicketPanel(View):
     def __init__(self):
         super().__init__(timeout=None)
-        self.add_item(TicketSelectPlaceholder())
+        self.add_item(TicketSelect())
 
-class TicketSelectPlaceholder(Select):
-    def __init__(self):
-        options = [
-            discord.SelectOption(label="Ticket Oluştur", emoji="🎫", description="Destek talebi oluştur")
-        ]
-        super().__init__(placeholder="Bir ticket oluştur...", options=options)
-
-    async def callback(self, interaction: discord.Interaction):
-        await interaction.response.send_message("Ticket oluşturmak için aşağıdaki menüden bir kategori seçmelisin.", ephemeral=True)
-
-
-@bot.tree.command(name="ticketpanel", description="Ticket paneli oluşturur")
+@bot.tree.command(name="ticketpanel")
 async def ticketpanel(interaction: discord.Interaction):
+
     embed = discord.Embed(
         title="🎫 Klan Destek Merkezi",
-        description="""
-Aşağıdaki menüden destek kategorisini seçerek ticket oluşturabilirsiniz.
-
-🤝 Partner Başvuru  
-🆘 Yardım  
-👥 Ekip Alım  
-⚠️ Şikayet
-
-Butonlarla ticketi devralabilir veya kapatabilirsiniz.
-""",
+        description="Kategori seçerek ticket oluştur.",
         color=0x5865F2
     )
 
-    await interaction.response.send_message(embed=embed, view=TicketView(interaction.user))
+    await interaction.response.send_message(embed=embed, view=TicketPanel())
 
-# -----------------------------
+# =================================================
 # READY
-# -----------------------------
+# =================================================
 
 @bot.event
 async def on_ready():
-
     await bot.tree.sync()
-
     print(f"Bot aktif: {bot.user}")
-
 
 bot.run(TOKEN)
