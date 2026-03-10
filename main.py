@@ -320,7 +320,6 @@ class TicketPanel(View):
 
 @bot.tree.command(name="ticketpanel")
 async def ticketpanel(interaction: discord.Interaction):
-
 embed = discord.Embed(
     title="🎫 Atlas Projects • Destek Merkezi",
     description="""
