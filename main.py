@@ -151,12 +151,20 @@ async def clear(interaction: discord.Interaction, amount: int):
 
 
 # -----------------------------
-# TICKET SYSTEM
+# TICKET SYSTEM (Geliştirilmiş)
 # -----------------------------
 
-class TicketSelect(Select):
-    def __init__(self):
+class TicketView(View):
+    def __init__(self, user: discord.Member):
+        super().__init__(timeout=None)
+        self.user = user
 
+        self.add_item(TicketSelect(user))
+
+class TicketSelect(Select):
+    def __init__(self, user: discord.Member):
+
+        self.user = user
         options = [
             discord.SelectOption(label="Partner Başvuru", emoji="🤝"),
             discord.SelectOption(label="Yardım", emoji="🆘"),
@@ -184,26 +192,53 @@ class TicketSelect(Select):
 
         channel = await guild.create_text_channel(name=name, category=category, overwrites=overwrites)
 
+        # Ticket açıldı mesajı
+        yetkililer = " ".join([f"<@&{r}>" for r in YETKILI_ROLLER])
         embed = discord.Embed(
-            title="🎫 Ticket Açıldı",
-            description=f"{interaction.user.mention} destek talebi oluşturdu.",
-            color=0x2b2d31
+            title="🎫 Destek Talebi Açıldı",
+            description=f"{interaction.user.mention} destek talebi oluşturdu.\n\n{yetkililer} buraya bakabilir.\n\nLütfen talebinizi açıklayıcı şekilde yazın.",
+            color=0x2b2d31,
+            timestamp=datetime.datetime.utcnow()
         )
 
-        await channel.send(embed=embed)
-
+        await channel.send(embed=embed, view=TicketButtons(user=interaction.user))
         await interaction.response.send_message(f"Ticket oluşturuldu: {channel.mention}", ephemeral=True)
+
+
+class TicketButtons(View):
+    def __init__(self, user: discord.Member):
+        super().__init__(timeout=None)
+        self.user = user
+
+    @discord.ui.button(label="Talebi Devral", style=discord.ButtonStyle.primary, emoji="🛠️")
+    async def claim(self, interaction: discord.Interaction, button: Button):
+        await interaction.response.send_message(f"{interaction.user.mention} talebi devraldı.", ephemeral=False)
+
+    @discord.ui.button(label="Ticket Kapat", style=discord.ButtonStyle.red, emoji="❌")
+    async def close(self, interaction: discord.Interaction, button: Button):
+        await interaction.response.send_message("Ticket 5 saniye içinde kapatılacak...", ephemeral=True)
+        await discord.utils.sleep_until(datetime.datetime.utcnow() + datetime.timedelta(seconds=5))
+        await interaction.channel.delete()
 
 
 class TicketPanel(View):
     def __init__(self):
         super().__init__(timeout=None)
-        self.add_item(TicketSelect())
+        self.add_item(TicketSelectPlaceholder())
+
+class TicketSelectPlaceholder(Select):
+    def __init__(self):
+        options = [
+            discord.SelectOption(label="Ticket Oluştur", emoji="🎫", description="Destek talebi oluştur")
+        ]
+        super().__init__(placeholder="Bir ticket oluştur...", options=options)
+
+    async def callback(self, interaction: discord.Interaction):
+        await interaction.response.send_message("Ticket oluşturmak için aşağıdaki menüden bir kategori seçmelisin.", ephemeral=True)
 
 
 @bot.tree.command(name="ticketpanel", description="Ticket paneli oluşturur")
 async def ticketpanel(interaction: discord.Interaction):
-
     embed = discord.Embed(
         title="🎫 Klan Destek Merkezi",
         description="""
@@ -213,12 +248,13 @@ Aşağıdaki menüden destek kategorisini seçerek ticket oluşturabilirsiniz.
 🆘 Yardım  
 👥 Ekip Alım  
 ⚠️ Şikayet
+
+Butonlarla ticketi devralabilir veya kapatabilirsiniz.
 """,
         color=0x5865F2
     )
 
-    await interaction.response.send_message(embed=embed, view=TicketPanel())
-
+    await interaction.response.send_message(embed=embed, view=TicketView(interaction.user))
 
 # -----------------------------
 # READY
