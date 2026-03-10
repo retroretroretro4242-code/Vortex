@@ -296,7 +296,7 @@ class TicketSelect(Select):
             color=0x2b2d31
         )
 
-        embed.set_footer(text="Atlas Projects Destek Sistemi")
+        embed.set_footer(text="Vortex Destek Sistemi")
 
         await channel.send(
             " ".join(yetkili_mentions),
@@ -323,7 +323,7 @@ class TicketPanel(View):
 async def ticketpanel(interaction: discord.Interaction):
 
     embed = discord.Embed(
-        title="🎫 Atlas Projects • Destek Merkezi",
+        title="🎫 Vortex • Destek Merkezi",
         description="""
 Sunucu ekibiyle iletişime geçmek için aşağıdan bir kategori seçin.
 
@@ -355,7 +355,7 @@ Kullanıcı şikayetleri veya kural ihlalleri.
     )
 
     embed.set_footer(
-        text="Atlas Projects Destek Sistemi",
+        text="Vortex Destek Sistemi",
         icon_url=interaction.guild.icon.url if interaction.guild.icon else None
     )
 
